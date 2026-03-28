@@ -19,7 +19,7 @@ Chrome Extension (Manifest V3) that captures bearer tokens from UiPath portal HT
 - `IdToken` — from `id-alpha/id/id-staging.uipath.com` URLs
 - `Unknown` — everything else
 
-**Tenant extraction**: Uses `chrome.scripting.executeScript` in `MAIN` world to call `PortalShell.AccountAndTenants.getCachedAccount()` on the UiPath page.
+**Organization & tenant extraction**: Uses `chrome.scripting.executeScript` in `MAIN` world to call `PortalShell.AccountAndTenants.getCachedAccount()` on the UiPath page. Returns both organization info (name, ID) and tenant list. Note: the UiPath API uses legacy "Account" naming but the extension UI uses "Organization" consistently.
 
 **Settings** (persisted via `chrome.storage.local`): auto-cleanup timer, token masking.
 

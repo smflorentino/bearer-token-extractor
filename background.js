@@ -206,15 +206,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       world: 'MAIN',
       func: () => {
         try {
-          const account = PortalShell.AccountAndTenants.getCachedAccount();
-          if (account && account.tenants) {
-            const tenants = account.tenants.map(t => ({
+          const orgData = PortalShell.AccountAndTenants.getCachedAccount();
+          if (orgData && orgData.tenants) {
+            const tenants = orgData.tenants.map(t => ({
               tenantName: t.tenantName || t.name || 'Unknown',
               tenantId: t.tenantId || t.id || 'Unknown'
             }));
-            const organization = account.organization ? {
-              name: account.organization.name || 'Unknown',
-              id: account.organization.id || 'Unknown'
+            const organization = orgData.organization ? {
+              name: orgData.organization.name || 'Unknown',
+              id: orgData.organization.id || 'Unknown'
             } : null;
             return { tenants, organization };
           }

@@ -16,7 +16,7 @@ test.describe('UI rendering', () => {
     await expect(page.getByRole('button', { name: 'Staging' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Prod' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Navigate' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Fetch Account Info' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Fetch Org Info' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Clear All' })).toBeVisible();
     await expect(page.getByText('No bearer tokens captured yet.')).toBeVisible();
   });
@@ -152,8 +152,8 @@ test.describe('real token integration', () => {
     // Wait for token to appear
     await expect(page.locator('#tokensList .token-type')).toBeVisible();
 
-    // Fetch account info — must return real data since token is valid
-    await page.getByRole('button', { name: 'Fetch Account Info' }).click();
+    // Fetch org info — must return real data since token is valid
+    await page.getByRole('button', { name: 'Fetch Org Info' }).click();
 
     // Wait for tenant data to appear
     await expect(page.locator('.tenant-item').first()).toBeVisible({ timeout: 10000 });
@@ -173,8 +173,8 @@ test.describe('real token integration', () => {
     // Wait for token to appear
     await expect(page.locator('#tokensList .token-type')).toBeVisible();
 
-    // Fetch account info
-    await page.getByRole('button', { name: 'Fetch Account Info' }).click();
+    // Fetch org info
+    await page.getByRole('button', { name: 'Fetch Org Info' }).click();
 
     // Wait for org info to appear
     await expect(page.locator('.org-item')).toBeVisible({ timeout: 10000 });

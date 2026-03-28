@@ -297,7 +297,7 @@ document.getElementById('fetchTenantsBtn').addEventListener('click', () => {
     action: 'fetchTenants',
     tabId: currentTabId
   }, (response) => {
-    btn.textContent = 'Fetch Account Info';
+    btn.textContent = 'Fetch Org Info';
     btn.disabled = false;
 
     if (response && response.success && response.tenants) {
@@ -310,7 +310,7 @@ document.getElementById('fetchTenantsBtn').addEventListener('click', () => {
       const orgMsg = response.organization ? ` for ${response.organization.name}` : '';
       showNotification(`Found ${response.tenants.length} tenant(s)${orgMsg}`, 'success');
     } else {
-      const errorMsg = response?.error || 'Could not fetch account info. Make sure you are on a UiPath portal page.';
+      const errorMsg = response?.error || 'Could not fetch org info. Make sure you are on a UiPath portal page.';
       showNotification(errorMsg, 'info');
     }
   });
