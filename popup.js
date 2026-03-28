@@ -1,7 +1,7 @@
 function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
-  return div.innerHTML;
+  return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 let currentTabId = null;
@@ -288,23 +288,19 @@ document.getElementById('settingsModal').addEventListener('click', (e) => {
 });
 
 // Fetch tenants button handler
-document.getElementById('fetchTenantsBtn').addEventListener('click', () => {
-  const btn = document.getElementById('fetchTenantsBtn');
+document.getElementById('fetchOrgInfoBtn').addEventListener('click', () => {
+  const btn = document.getElementById('fetchOrgInfoBtn');
   btn.textContent = 'Fetching...';
   btn.disabled = true;
 
   chrome.runtime.sendMessage({
-    action: 'fetchTenants',
+    action: 'fetchOrgInfo',
     tabId: currentTabId
   }, (response) => {
     btn.textContent = 'Fetch Org Info';
     btn.disabled = false;
 
     if (response && response.success && response.tenants) {
-      if (response.tenants.error) {
-        showNotification('Error: ' + response.tenants.error, 'info');
-        return;
-      }
       displayOrganization(response.organization);
       displayTenants(response.tenants);
       const orgMsg = response.organization ? ` for ${response.organization.name}` : '';
@@ -344,6 +340,8 @@ function displayOrganization(org) {
         e.target.textContent = 'Copy ID';
         e.target.classList.remove('copied');
       }, 2000);
+    }).catch(() => {
+      showNotification('Failed to copy to clipboard', 'info');
     });
   });
 }
@@ -384,6 +382,8 @@ function displayTenants(tenants) {
           e.target.textContent = 'Copy ID';
           e.target.classList.remove('copied');
         }, 2000);
+      }).catch(() => {
+        showNotification('Failed to copy to clipboard', 'info');
       });
     });
   });

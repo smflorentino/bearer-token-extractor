@@ -200,7 +200,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: true });
     });
     return true;
-  } else if (request.action === 'fetchTenants') {
+  } else if (request.action === 'fetchOrgInfo') {
     chrome.scripting.executeScript({
       target: { tabId: request.tabId },
       world: 'MAIN',

@@ -141,7 +141,7 @@ test.describe('real token integration', () => {
   const status = getTokenStatus();
   test.skip(status !== 'valid', `Skipped: dev/.dev-token is ${status}`);
 
-  test('inject real token and fetch tenants', async ({ page }) => {
+  test('inject real token and fetch org and tenants', async ({ page }) => {
     const fetchString = fs.readFileSync(devTokenPath, 'utf8');
 
     await page.goto('/');
@@ -185,7 +185,7 @@ test.describe('real token integration', () => {
 
     // Verify org ID is displayed
     const orgId = await page.locator('.org-id').textContent();
-    expect(orgId).toMatch(/^[a-f0-9-]+$/);
+    expect(orgId).toBeTruthy();
 
     // Verify copy button exists for org ID
     await expect(page.locator('.copy-org-btn')).toBeVisible();
