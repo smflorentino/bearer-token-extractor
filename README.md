@@ -228,6 +228,34 @@ A detailed security analysis is available in [SECURITY.md](SECURITY.md), includi
 - Recommendations for hardening
 - Incident response procedures
 
+## Dev Server
+
+Iterate on the extension UI without loading it into Chrome. Serves the popup as a regular web page with Chrome APIs shimmed and live-reloads on file changes.
+
+### One-time setup
+```bash
+cd dev && npm install
+npx playwright install chromium
+```
+
+### Dev loop
+```bash
+cd dev && npm start
+# opens at http://localhost:3000
+```
+
+1. Edit any extension file (`popup.js`, `popup.css`, `background.js`, etc.) — the page auto-reloads
+2. To inject a real token: go to a UiPath portal page, open DevTools Network tab, right-click any request with an `Authorization` header → **Copy as fetch()**, paste into the dev toolbar at the bottom of the page
+3. Click **Fetch Tenants** to call the real UiPath tenant API using the injected token
+4. Use the sample token buttons for quick UI testing without a real token
+
+### Tests
+```bash
+cd dev && npx playwright test
+```
+
+11 tests run with sample tokens (no real credentials needed). To also run the integration test that hits the real UiPath API, save a "Copy as fetch()" string to `dev/.dev-token` — this file is gitignored.
+
 ## Files
 
 - `manifest.json`: Extension configuration and permissions

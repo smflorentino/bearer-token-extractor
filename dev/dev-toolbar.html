@@ -1,0 +1,21 @@
+    <div id="devToolbar" class="dev-toolbar">
+      <div class="dev-toolbar-header" id="devToolbarToggle">
+        <span class="dev-toolbar-title">Dev Tools</span>
+        <span class="dev-toolbar-chevron" id="devToolbarChevron">&#9650;</span>
+      </div>
+      <div class="dev-toolbar-body" id="devToolbarBody">
+        <div class="dev-toolbar-section">
+          <label class="dev-label">Paste fetch() from DevTools:</label>
+          <textarea id="devFetchInput" class="dev-textarea" rows="4" placeholder='Paste a "Copy as fetch()" here — token injects automatically'></textarea>
+        </div>
+        <div class="dev-toolbar-section">
+          <label class="dev-label">Sample tokens:</label>
+          <div class="dev-sample-buttons">
+            <button class="dev-btn dev-btn-sample" data-type="UserAccessToken">UserAccessToken</button>
+            <button class="dev-btn dev-btn-sample" data-type="PortalPkceToken">PortalPkceToken</button>
+            <button class="dev-btn dev-btn-sample" data-type="IdToken">IdToken</button>
+          </div>
+        </div>
+        <div id="devStatus" class="dev-status"></div>
+      </div>
+    </div>
