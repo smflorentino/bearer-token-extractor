@@ -10,3 +10,11 @@ Thumbs.db
 *.zip
 *.crx
 *.pem
+
+# Dev server
+dev/node_modules/
+
+# Dev token file (contains real bearer tokens - never commit)
+dev/.dev-token
+
+.playwright-mcp/

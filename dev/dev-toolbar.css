@@ -1,0 +1,144 @@
+.dev-toolbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1e1e1e;
+  color: #ccc;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', monospace;
+  font-size: 12px;
+  z-index: 9999;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dev-toolbar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: #2d2d2d;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dev-toolbar-header:hover {
+  background: #383838;
+}
+
+.dev-toolbar-title {
+  font-weight: 600;
+  color: #4fc3f7;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.dev-toolbar-chevron {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.dev-toolbar-chevron.collapsed {
+  transform: rotate(180deg);
+}
+
+.dev-toolbar-body {
+  padding: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dev-toolbar-body.hidden {
+  display: none;
+}
+
+.dev-toolbar-section {
+  margin-bottom: 12px;
+}
+
+.dev-label {
+  display: block;
+  margin-bottom: 4px;
+  color: #aaa;
+  font-size: 11px;
+}
+
+.dev-textarea {
+  width: 100%;
+  background: #2d2d2d;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.dev-textarea:focus {
+  outline: none;
+  border-color: #4fc3f7;
+}
+
+.dev-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.dev-btn-primary {
+  background: #4fc3f7;
+  color: #1e1e1e;
+  margin-top: 6px;
+}
+
+.dev-btn-primary:hover {
+  background: #81d4fa;
+}
+
+.dev-sample-buttons {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dev-btn-sample {
+  background: #444;
+  color: #ccc;
+  font-size: 10px;
+}
+
+.dev-btn-sample:hover {
+  background: #555;
+}
+
+.dev-status {
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  min-height: 20px;
+}
+
+.dev-status.success {
+  background: #1b5e20;
+  color: #a5d6a7;
+}
+
+.dev-status.error {
+  background: #b71c1c;
+  color: #ef9a9a;
+}
+
+.dev-status:empty {
+  display: none;
+}
+
+/* Push main content up so toolbar doesn't overlap */
+body {
+  padding-bottom: 180px !important;
+}
