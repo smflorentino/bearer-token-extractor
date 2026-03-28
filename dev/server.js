@@ -28,12 +28,17 @@ function broadcast(msg) {
 app.get('/', (req, res) => {
   let html = fs.readFileSync(path.join(ROOT, 'popup.html'), 'utf8');
 
+  // Inject stylesheet into <head> (not <body>)
+  html = html.replace(
+    '</head>',
+    '    <link rel="stylesheet" href="/dev/dev-toolbar.css">\n</head>'
+  );
+
   // Inject shim + background.js BEFORE popup.js
   const injectedScripts = `
     <script src="/dev/chrome-shim.js"></script>
     <script src="/background.js"></script>
     <script src="/dev/dev-toolbar.js"></script>
-    <link rel="stylesheet" href="/dev/dev-toolbar.css">
   `;
   html = html.replace(
     '<script src="popup.js"></script>',
@@ -80,32 +85,36 @@ app.post('/api/tenants', (req, res) => {
     return res.json({ error: 'No token provided. Inject a fetch() first.' });
   }
 
-  // Parse the URL to determine baseUrl and orgSlug
-  let baseUrl = null;
+  // Parse and validate the URL
+  let hostname = null;
   let orgSlug = null;
   if (url) {
     try {
       const parsed = new URL(url);
-      baseUrl = `${parsed.protocol}//${parsed.hostname}`;
+      if (parsed.protocol !== 'https:') {
+        return res.json({ error: 'Only HTTPS URLs are supported.' });
+      }
+      if (!parsed.hostname.endsWith('.uipath.com')) {
+        return res.json({ error: 'Tenant proxy is restricted to *.uipath.com hosts.' });
+      }
+      hostname = parsed.hostname;
       const pathParts = parsed.pathname.split('/').filter(Boolean);
       if (pathParts.length > 0 && !pathParts[0].startsWith('portal_') && !pathParts[0].startsWith('identity')) {
         orgSlug = pathParts[0];
       }
     } catch (e) {
-      // URL parsing failed
+      return res.json({ error: 'Invalid URL.' });
     }
   }
 
-  if (!baseUrl || !orgSlug) {
+  if (!hostname || !orgSlug) {
     return res.json({ error: 'Could not determine environment/org from URL. Inject a fetch() from a UiPath portal page.' });
   }
 
-  const tenantApiUrl = `${baseUrl}/${orgSlug}/portal_/api/filtering/leftnav/tenantsAndOrganizationInfo`;
-
-  const urlObj = new URL(tenantApiUrl);
+  const tenantPath = `/${orgSlug}/portal_/api/filtering/leftnav/tenantsAndOrganizationInfo`;
   const options = {
-    hostname: urlObj.hostname,
-    path: urlObj.pathname + urlObj.search,
+    hostname,
+    path: tenantPath,
     method: 'GET',
     headers: {
       'Authorization': 'Bearer ' + token,
@@ -140,6 +149,11 @@ app.post('/api/tenants', (req, res) => {
     });
   });
 
+  proxyReq.setTimeout(10000, () => {
+    proxyReq.destroy();
+    res.json({ error: 'Tenant API request timed out after 10s.' });
+  });
+
   proxyReq.on('error', (err) => {
     res.json({ error: 'Tenant API request failed: ' + err.message });
   });
@@ -167,7 +181,7 @@ watcher.on('change', onFileChange);
 devWatcher.on('change', onFileChange);
 
 // --- Start server ---
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`[dev] Dev server running at http://localhost:${PORT}`);
   console.log(`[dev] Watching for file changes in ${ROOT}`);
 });

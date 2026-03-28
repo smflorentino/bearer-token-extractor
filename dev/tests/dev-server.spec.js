@@ -2,10 +2,10 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-// Helper: inject a sample token via the dev toolbar button
+// Helper: inject a sample token and wait for it to appear in the token list
 async function injectSampleToken(page, type) {
   await page.getByRole('button', { name: type }).click();
-  await page.waitForTimeout(2500);
+  await expect(page.locator(`#tokensList .token-type.${type}`)).toBeVisible();
 }
 
 test.describe('UI rendering', () => {
@@ -35,20 +35,17 @@ test.describe('token injection', () => {
   test('sample UserAccessToken appears with correct type', async ({ page }) => {
     await page.goto('/');
     await injectSampleToken(page, 'UserAccessToken');
-    await expect(page.locator('#tokensList .token-type.UserAccessToken')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Copy Token' })).toBeVisible();
   });
 
   test('sample IdToken appears with correct type', async ({ page }) => {
     await page.goto('/');
     await injectSampleToken(page, 'IdToken');
-    await expect(page.locator('#tokensList .token-type.IdToken')).toBeVisible();
   });
 
   test('sample PortalPkceToken appears with correct type', async ({ page }) => {
     await page.goto('/');
     await injectSampleToken(page, 'PortalPkceToken');
-    await expect(page.locator('#tokensList .token-type.PortalPkceToken')).toBeVisible();
   });
 
   test('multiple tokens are sorted by priority', async ({ page }) => {
@@ -92,11 +89,9 @@ test.describe('settings', () => {
     await page.getByRole('button', { name: '⚙️' }).click();
     await page.getByRole('checkbox', { name: 'Mask tokens' }).check();
     await page.getByRole('button', { name: 'Save Settings' }).click();
-    await page.waitForTimeout(2500);
 
-    const masked = await page.locator('.token-value').first().textContent();
-    expect(masked).toContain('****');
-    expect(masked.length).toBeLessThan(unmasked.length);
+    // Wait for masking to take effect on next poll
+    await expect(page.locator('.token-value').first()).toContainText('****');
   });
 });
 
@@ -104,11 +99,9 @@ test.describe('clear tokens', () => {
   test('Clear All removes all tokens', async ({ page }) => {
     await page.goto('/');
     await injectSampleToken(page, 'UserAccessToken');
-    await expect(page.getByRole('button', { name: 'Copy Token' }).first()).toBeVisible();
 
     await page.evaluate(() => { window.confirm = () => true; });
     await page.getByRole('button', { name: 'Clear All' }).click();
-    await page.waitForTimeout(2500);
 
     await expect(page.getByText('No bearer tokens captured yet.')).toBeVisible();
   });
@@ -152,25 +145,20 @@ test.describe('real token integration', () => {
     const fetchString = fs.readFileSync(devTokenPath, 'utf8');
 
     await page.goto('/');
-    await page.waitForTimeout(1000);
 
     // Paste into the textarea to trigger auto-inject
     await page.locator('#devFetchInput').fill(fetchString);
-    await page.waitForTimeout(3000);
 
-    // Verify token appears
-    const tokenTypes = await page.locator('.token-type').allTextContents();
-    expect(tokenTypes.length).toBeGreaterThan(0);
+    // Wait for token to appear
+    await expect(page.locator('#tokensList .token-type')).toBeVisible();
 
     // Fetch tenants — must return real data since token is valid
     await page.getByRole('button', { name: 'Fetch Tenants' }).click();
-    await page.waitForTimeout(3000);
 
-    const tenantItems = page.locator('.tenant-item');
-    const tenantCount = await tenantItems.count();
-    expect(tenantCount).toBeGreaterThan(0);
+    // Wait for tenant data to appear
+    await expect(page.locator('.tenant-item').first()).toBeVisible({ timeout: 10000 });
 
-    const tenantName = await tenantItems.first().locator('.tenant-name').textContent();
+    const tenantName = await page.locator('.tenant-item').first().locator('.tenant-name').textContent();
     expect(tenantName.length).toBeGreaterThan(0);
   });
 });

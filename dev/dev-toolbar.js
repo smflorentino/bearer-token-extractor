@@ -46,7 +46,7 @@
     }
   };
 
-  // --- Client-side fetch parser (uses Function constructor for flexibility) ---
+  // --- Client-side fetch parser (regex-based) ---
   function parseFetchClient(fetchStr) {
     const urlMatch = fetchStr.match(/fetch\s*\(\s*["']([^"']+)["']/);
     if (!urlMatch) throw new Error('Could not extract URL');
