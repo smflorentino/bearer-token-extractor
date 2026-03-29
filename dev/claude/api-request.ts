@@ -14,7 +14,7 @@
 import fs from 'fs';
 import https from 'https';
 import path from 'path';
-import { extractToken, extractUrl } from './parse-token';
+import { extractToken, extractUrl, UIPATH_HOST } from './parse-token';
 
 const tokenFile = path.join(__dirname, '..', '.dev-token');
 
@@ -39,7 +39,7 @@ let requestPath: string;
 const customPath = process.argv[2];
 
 if (customPath) {
-  hostname = url ? new URL(url).hostname : 'alpha.uipath.com';
+  hostname = url ? new URL(url).hostname : UIPATH_HOST;
   requestPath = customPath;
 } else if (url) {
   const parsed = new URL(url);

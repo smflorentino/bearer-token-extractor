@@ -1,5 +1,11 @@
 // Shared token-parsing utilities for dev scripts.
 
+// Default UiPath environment for dev scripts and tests.
+// To switch environments, change this to the target portal domain
+// (e.g. alpha.uipath.com, staging.uipath.com).
+// export const UIPATH_HOST = 'cloud.uipath.com';
+export const UIPATH_HOST = 'alpha.uipath.com';
+
 const BEARER_RE = /["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/;
 const RAW_JWT_RE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const FETCH_URL_RE = /fetch\s*\(\s*["']([^"']+)["']/;

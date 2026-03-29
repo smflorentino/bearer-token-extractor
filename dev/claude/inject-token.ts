@@ -13,7 +13,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { extractToken, extractUrl, decodeJwt } from './parse-token';
+import { extractToken, extractUrl, decodeJwt, UIPATH_HOST } from './parse-token';
 
 const tokenFile = path.join(__dirname, '..', '.dev-token');
 const fetchStringMode = process.argv.includes('--fetch-string');
@@ -57,7 +57,7 @@ if (fetchStringMode) {
     console.log(content.trim());
   } else {
     // Raw JWT — synthesize a fetch string for the dev toolbar
-    console.log(`fetch("https://alpha.uipath.com", {\n  "headers": {\n    "authorization": "Bearer ${token}"\n  }\n})`);
+    console.log(`fetch("https://${UIPATH_HOST}", {\n  "headers": {\n    "authorization": "Bearer ${token}"\n  }\n})`);
   }
 } else {
   console.log(JSON.stringify({ token, url, status, expiresIn }));

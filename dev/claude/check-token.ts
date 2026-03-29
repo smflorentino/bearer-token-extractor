@@ -10,7 +10,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { extractToken, decodeJwt } from './parse-token';
+import { extractToken, extractUrl, decodeJwt, UIPATH_HOST } from './parse-token';
 
 if (process.argv.includes('--help')) {
   console.log(`check-token.ts — Verify dev/.dev-token has a valid, non-expired bearer token.
@@ -61,6 +61,18 @@ if (remaining <= 0) {
   const ago = Math.abs(Math.floor(remaining / 60));
   console.log(`EXPIRED: Token expired ${ago} minute(s) ago. Ask the user to refresh dev/.dev-token.`);
   process.exit(0);
+}
+
+// Check if token is for the expected environment
+const url = extractUrl(content);
+if (url) {
+  try {
+    const host = new URL(url).hostname;
+    if (host !== UIPATH_HOST) {
+      console.log(`WRONG_ENV: Token is for ${host}, expected ${UIPATH_HOST}. Delete dev/.dev-token to re-fetch.`);
+      process.exit(0);
+    }
+  } catch {}
 }
 
 const mins = Math.floor(remaining / 60);

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { extractToken, extractUrl, decodeJwt } from '../claude/parse-token';
+import { extractToken, extractUrl, decodeJwt, UIPATH_HOST } from '../claude/parse-token';
 
 // Helper: inject a sample token and wait for it to appear in the token list
 async function injectSampleToken(page: Page, type: string) {
@@ -133,6 +133,10 @@ test.describe('integration tests', () => {
     const payload = decodeJwt(token);
     if (!payload) return 'invalid';
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return 'expired';
+    const url = extractUrl(content);
+    if (url) {
+      try { if (new URL(url).hostname !== UIPATH_HOST) return 'wrong_env'; } catch {}
+    }
     return 'valid';
   }
 
@@ -144,7 +148,7 @@ test.describe('integration tests', () => {
     if (extractUrl(content)) return content;
     // Raw JWT — synthesize a fetch string for the dev toolbar
     const token = extractToken(content);
-    return `fetch("https://alpha.uipath.com", {\n  "headers": {\n    "authorization": "Bearer ${token}"\n  }\n})`;
+    return `fetch("https://${UIPATH_HOST}", {\n  "headers": {\n    "authorization": "Bearer ${token}"\n  }\n})`;
   }
 
   test('inject real token and fetch org and tenants', async ({ page }) => {

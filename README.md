@@ -65,7 +65,7 @@ A Chrome extension primarily designed for **UiPath token extraction** - captures
 
 ### Token Types
 The extension automatically detects and categorizes tokens:
-- **IdToken** (Blue): Tokens from UiPath identity services (`id-alpha.uipath.com`, `id.uipath.com`, `id-staging.uipath.com`)
+- **IdToken** (Blue): Tokens from UiPath identity services (`id-*.uipath.com`, `account.uipath.com`)
 - **PortalPkceToken** (Purple): Tokens with `client_id: 73ba6224-d591-4a4f-b3ab-508e646f2932`
 - **UserAccessToken** (Orange): Tokens with `client_id: 1119a927-10ab-4543-bd1a-ad6bfbbc27f4`
 - **Unknown** (Gray): Other bearer tokens that don't match known patterns

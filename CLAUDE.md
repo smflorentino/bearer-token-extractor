@@ -13,10 +13,10 @@ Chrome Extension (Manifest V3) that captures bearer tokens from UiPath portal HT
 
 ## Key concepts
 
-**Token types** (classified by `client_id` in JWT payload):
-- `UserAccessToken` — client_id `1119a927-...`
+**Token types** (classified by URL and `client_id` in JWT payload):
+- `IdToken` — request URL matches `id-*.uipath.com` or `account.uipath.com` (checked first)
 - `PortalPkceToken` — client_id `73ba6224-...`
-- `IdToken` — from `id-alpha/id/id-staging.uipath.com` URLs
+- `UserAccessToken` — client_id `1119a927-...`
 - `Unknown` — everything else
 
 **Organization & tenant extraction**: Uses `chrome.scripting.executeScript` in `MAIN` world to call `PortalShell.AccountAndTenants.getCachedAccount()` on the UiPath page. Returns both organization info (name, ID) and tenant list. Note: the UiPath API uses legacy "Account" naming but the extension UI uses "Organization" consistently.

@@ -1,5 +1,5 @@
 #!/usr/bin/env npx tsx
-// Fetches a bearer token by logging into alpha.uipath.com via Playwright.
+// Fetches a bearer token by logging into UIPATH_HOST via Playwright.
 // Writes a fetch() format string to dev/.dev-token if the cached token is missing or expired.
 //
 // Requires env vars:
@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import { chromium } from 'playwright';
 
-import { extractToken, decodeJwt } from './parse-token';
+import { extractToken, extractUrl, decodeJwt, UIPATH_HOST } from './parse-token';
 
 const TOKEN_FILE = path.join(__dirname, '..', '.dev-token');
 const MIN_REMAINING_SECONDS = 5 * 60; // skip login if token has >5 min left
@@ -40,13 +40,17 @@ async function main() {
     process.exit(0);
   }
 
-  // Check if cached token is still fresh
+  // Check if cached token is still fresh and for the right environment
   const cached = getCachedToken();
   if (cached && isTokenFresh(cached)) {
-    const payload = decodeJwt(cached)!;
-    const mins = Math.floor((payload.exp! - Math.floor(Date.now() / 1000)) / 60);
-    console.log(`OK: Cached token still valid (${mins}m remaining). Skipping login.`);
-    process.exit(0);
+    const cachedUrl = extractUrl(fs.readFileSync(TOKEN_FILE, 'utf8'));
+    const isCorrectEnv = !cachedUrl || new URL(cachedUrl).hostname === UIPATH_HOST;
+    if (isCorrectEnv) {
+      const payload = decodeJwt(cached)!;
+      const mins = Math.floor((payload.exp! - Math.floor(Date.now() / 1000)) / 60);
+      console.log(`OK: Cached token still valid (${mins}m remaining). Skipping login.`);
+      process.exit(0);
+    }
   }
 
   console.log('Fetching new token via Playwright login...');
@@ -63,18 +67,13 @@ async function main() {
     resolveTokenCaptured = resolve;
   });
 
-  // Listen for requests with Authorization: Bearer headers on alpha.uipath.com.
-  // We need a request whose URL contains the org slug (e.g. /bearertokenextractor/)
-  // so the dev server's tenant proxy can extract the hostname and org.
-  // Skip: identity provider (id-alpha), pre-org paths (portal_, identity_).
+  // Capture the first *.uipath.com request with a Bearer token and an org slug in the path
+  // (e.g. /bearertokenextractor/portal_/api/...). Skip non-org paths like /portal_/ and /identity_/.
   page.on('request', (request) => {
-    if (capturedToken) return; // already got one
-    const url = request.url();
-    if (!url.includes('alpha.uipath.com')) return;
-    if (url.includes('id-alpha.uipath.com')) return;
-    // Must have org slug in path — skip URLs whose first path segment is portal_ or identity_
+    if (capturedToken) return;
     try {
-      const parsed = new URL(url);
+      const parsed = new URL(request.url());
+      if (!parsed.hostname.endsWith('uipath.com')) return;
       const firstSegment = parsed.pathname.split('/').filter(Boolean)[0];
       if (!firstSegment || firstSegment.startsWith('portal_') || firstSegment.startsWith('identity')) return;
     } catch { return; }
@@ -84,16 +83,22 @@ async function main() {
     const payload = decodeJwt(token);
     if (!payload?.exp) return; // skip tokens without expiry
     capturedToken = token;
-    capturedUrl = url;
+    capturedUrl = request.url();
     resolveTokenCaptured();
   });
 
   try {
-    // Navigate to alpha.uipath.com — redirects to id-alpha.uipath.com/login
-    await page.goto('https://alpha.uipath.com', { timeout: LOGIN_TIMEOUT });
+    // Navigate to UIPATH_HOST — redirects to the identity provider for login
+    await page.goto(`https://${UIPATH_HOST}`, { timeout: LOGIN_TIMEOUT });
 
     // Click "Continue with Email" to reveal email/password form
     await page.getByRole('button', { name: 'Continue with Email' }).click();
+
+    // Dismiss cookie consent banner if present (blocks clicks on cloud.uipath.com)
+    const cookieBanner = page.getByRole('button', { name: 'Ok, got it' });
+    if (await cookieBanner.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await cookieBanner.click();
+    }
 
     // Fill credentials
     await page.getByRole('textbox', { name: 'Email' }).fill(username);
@@ -102,8 +107,8 @@ async function main() {
     // Sign in
     await page.getByRole('button', { name: 'Sign In' }).click();
 
-    // Wait for redirect back to alpha.uipath.com after login
-    await page.waitForURL('**/alpha.uipath.com/**', { timeout: LOGIN_TIMEOUT });
+    // Wait for redirect back to UIPATH_HOST after login
+    await page.waitForURL(`**/${UIPATH_HOST}/**`, { timeout: LOGIN_TIMEOUT });
 
     // Wait for bearer token to be captured from subsequent API requests
     if (!capturedToken) {
