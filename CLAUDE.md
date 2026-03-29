@@ -63,6 +63,10 @@ All scripts live in `dev/claude/` and are pre-authorized — no human approval n
 | `node dev/claude/check-token.js` | Check if `dev/.dev-token` exists and isn't expired |
 | `node dev/claude/inject-token.js` | Extract token + URL as JSON for MCP injection |
 | `node dev/claude/inject-token.js --fetch-string` | Output raw fetch() string for pasting into dev toolbar |
+| `dev/claude/pr-comments.sh list [pr]` | List unresolved PR review comments |
+| `dev/claude/pr-comments.sh reply <pr> <id> <body>` | Reply to a specific review comment |
+| `dev/claude/pr-comments.sh resolve <pr> [--all]` | Resolve review threads (one or all) |
+| `dev/claude/pr-comments.sh reply-resolve <pr> <body>` | Reply to all unresolved comments and resolve them |
 | `dev/claude/start-server.sh` | Start dev server in background, wait for ready |
 | `dev/claude/stop-server.sh` | Stop dev server |
 | `dev/claude/run-tests.sh` | Run Playwright tests from correct cwd |
