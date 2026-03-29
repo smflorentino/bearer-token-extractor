@@ -462,13 +462,86 @@ h2 {
   letter-spacing: 1px;
 }
 
-/* Tenants Section */
-.tenants-section {
+/* Organization Section */
+.org-section {
   background: white;
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 16px;
+}
+
+.org-info {
+  margin-bottom: 8px;
+}
+
+.org-item {
+  background: #f0f4ff;
+  border: 1px solid #c8d6f0;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.org-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.org-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.org-id-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.org-id {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: #666;
+  word-break: break-all;
+  flex: 1;
+}
+
+.copy-org-btn {
+  padding: 3px 8px;
+  background: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.copy-org-btn:hover {
+  background: #0b7dda;
+}
+
+.copy-org-btn.copied {
+  background: #4CAF50;
+}
+
+.tenants-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
 }
 
 .fetch-btn {

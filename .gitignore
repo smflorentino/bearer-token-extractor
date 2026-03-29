@@ -17,4 +17,7 @@ dev/node_modules/
 # Dev token file (contains real bearer tokens - never commit)
 dev/.dev-token
 
+# Playwright test output
+dev/test-results/
+
 .playwright-mcp/

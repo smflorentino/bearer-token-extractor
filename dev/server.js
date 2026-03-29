@@ -129,6 +129,7 @@ app.post('/api/tenants', (req, res) => {
       try {
         const data = JSON.parse(body);
         let tenants = [];
+        let organization = null;
         if (Array.isArray(data)) {
           tenants = data.map(t => ({
             tenantName: t.tenantName || t.name || 'Unknown',
@@ -139,10 +140,16 @@ app.post('/api/tenants', (req, res) => {
             tenantName: t.tenantName || t.name || 'Unknown',
             tenantId: t.tenantId || t.id || 'Unknown'
           }));
+          if (data.organization) {
+            organization = {
+              name: data.organization.name || 'Unknown',
+              id: data.organization.id || 'Unknown'
+            };
+          }
         } else {
           return res.json({ tenants: null, error: 'Unexpected API response shape', raw: data });
         }
-        res.json({ tenants });
+        res.json({ tenants, organization });
       } catch (e) {
         res.json({ error: 'Failed to parse tenant API response: ' + e.message, raw: body.substring(0, 500) });
       }

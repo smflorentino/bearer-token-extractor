@@ -21,7 +21,7 @@
         scope: 'openid profile email',
         iss: 'https://id.uipath.com'
       }),
-      url: 'https://cloud.uipath.com/api/account/sample'
+      url: 'https://cloud.uipath.com/api/org/sample'
     },
     PortalPkceToken: {
       token: () => createSampleJWT({

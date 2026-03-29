@@ -102,7 +102,7 @@
           .then(res => res.json())
           .then(data => {
             if (data.tenants) {
-              return [{ result: data.tenants }];
+              return [{ result: { tenants: data.tenants, organization: data.organization || null } }];
             }
             return [{ result: { error: data.error || 'No tenant data' } }];
           })

@@ -16,7 +16,7 @@ test.describe('UI rendering', () => {
     await expect(page.getByRole('button', { name: 'Staging' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Prod' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Navigate' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Fetch Tenants' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Fetch Org Info' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Clear All' })).toBeVisible();
     await expect(page.getByText('No bearer tokens captured yet.')).toBeVisible();
   });
@@ -141,7 +141,7 @@ test.describe('real token integration', () => {
   const status = getTokenStatus();
   test.skip(status !== 'valid', `Skipped: dev/.dev-token is ${status}`);
 
-  test('inject real token and fetch tenants', async ({ page }) => {
+  test('inject real token and fetch org and tenants', async ({ page }) => {
     const fetchString = fs.readFileSync(devTokenPath, 'utf8');
 
     await page.goto('/');
@@ -152,13 +152,42 @@ test.describe('real token integration', () => {
     // Wait for token to appear
     await expect(page.locator('#tokensList .token-type')).toBeVisible();
 
-    // Fetch tenants — must return real data since token is valid
-    await page.getByRole('button', { name: 'Fetch Tenants' }).click();
+    // Fetch org info — must return real data since token is valid
+    await page.getByRole('button', { name: 'Fetch Org Info' }).click();
 
     // Wait for tenant data to appear
     await expect(page.locator('.tenant-item').first()).toBeVisible({ timeout: 10000 });
 
     const tenantName = await page.locator('.tenant-item').first().locator('.tenant-name').textContent();
     expect(tenantName.length).toBeGreaterThan(0);
+  });
+
+  test('inject real token and fetch org info', async ({ page }) => {
+    const fetchString = fs.readFileSync(devTokenPath, 'utf8');
+
+    await page.goto('/');
+
+    // Paste into the textarea to trigger auto-inject
+    await page.locator('#devFetchInput').fill(fetchString);
+
+    // Wait for token to appear
+    await expect(page.locator('#tokensList .token-type')).toBeVisible();
+
+    // Fetch org info
+    await page.getByRole('button', { name: 'Fetch Org Info' }).click();
+
+    // Wait for org info to appear
+    await expect(page.locator('.org-item')).toBeVisible({ timeout: 10000 });
+
+    // Verify org name is displayed
+    const orgName = await page.locator('.org-name').textContent();
+    expect(orgName.length).toBeGreaterThan(0);
+
+    // Verify org ID is displayed
+    const orgId = await page.locator('.org-id').textContent();
+    expect(orgId).toBeTruthy();
+
+    // Verify copy button exists for org ID
+    await expect(page.locator('.copy-org-btn')).toBeVisible();
   });
 });

@@ -200,18 +200,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: true });
     });
     return true;
-  } else if (request.action === 'fetchTenants') {
+  } else if (request.action === 'fetchOrgInfo') {
     chrome.scripting.executeScript({
       target: { tabId: request.tabId },
       world: 'MAIN',
       func: () => {
         try {
-          const account = PortalShell.AccountAndTenants.getCachedAccount();
-          if (account && account.tenants) {
-            return account.tenants.map(t => ({
+          const orgData = PortalShell.AccountAndTenants.getCachedAccount();
+          if (orgData && orgData.tenants) {
+            const tenants = orgData.tenants.map(t => ({
               tenantName: t.tenantName || t.name || 'Unknown',
               tenantId: t.tenantId || t.id || 'Unknown'
             }));
+            const organization = orgData.organization ? {
+              name: orgData.organization.name || 'Unknown',
+              id: orgData.organization.id || 'Unknown'
+            } : null;
+            return { tenants, organization };
           }
           return null;
         } catch (e) {
@@ -219,8 +224,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
       }
     }).then((results) => {
-      if (results && results[0] && results[0].result) {
-        sendResponse({ success: true, tenants: results[0].result });
+      const result = results && results[0] && results[0].result;
+      if (result && !result.error) {
+        sendResponse({ success: true, tenants: result.tenants, organization: result.organization });
+      } else if (result && result.error) {
+        sendResponse({ success: false, error: result.error });
       } else {
         sendResponse({ success: false, error: 'No tenant data found' });
       }

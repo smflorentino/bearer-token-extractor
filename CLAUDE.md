@@ -19,7 +19,7 @@ Chrome Extension (Manifest V3) that captures bearer tokens from UiPath portal HT
 - `IdToken` — from `id-alpha/id/id-staging.uipath.com` URLs
 - `Unknown` — everything else
 
-**Tenant extraction**: Uses `chrome.scripting.executeScript` in `MAIN` world to call `PortalShell.AccountAndTenants.getCachedAccount()` on the UiPath page.
+**Organization & tenant extraction**: Uses `chrome.scripting.executeScript` in `MAIN` world to call `PortalShell.AccountAndTenants.getCachedAccount()` on the UiPath page. Returns both organization info (name, ID) and tenant list. Note: the UiPath API uses legacy "Account" naming but the extension UI uses "Organization" consistently.
 
 **Settings** (persisted via `chrome.storage.local`): auto-cleanup timer, token masking.
 
@@ -47,15 +47,31 @@ It contains a raw "Copy as fetch()" output from browser DevTools — the full `f
 ### Running tests
 
 ```
-cd dev && npx playwright test
+dev/claude/run-tests.sh
 ```
 
-The Playwright config auto-starts and stops the dev server. 11 tests run deterministically using sample tokens (no real credentials needed). 1 integration test uses `dev/.dev-token` — it is automatically skipped if the file is missing, the token is expired, or the JWT is invalid.
+The Playwright config auto-starts and stops the dev server. 13 tests run deterministically using sample tokens (no real credentials needed). 2 integration tests use `dev/.dev-token` — they are automatically skipped if the file is missing, the token is expired, or the JWT is invalid.
 
-**Dev script** (whitelisted, run with `--help` for details):
-- `node dev/claude/check-token.js` — check if `dev/.dev-token` exists and isn't expired
+**After making changes, always run `dev/claude/run-tests.sh` to verify.** If integration tests are skipped and you need them to run, ask the user to refresh `dev/.dev-token`.
 
-**After making changes, always run `cd dev && npx playwright test` to verify.** If the integration test is skipped and you need it to run, ask the user to refresh `dev/.dev-token`.
+### Dev scripts (all allowlisted in `settings.local.json`)
+
+All scripts live in `dev/claude/` and are pre-authorized — no human approval needed.
+
+| Script | Purpose |
+|--------|---------|
+| `node dev/claude/check-token.js` | Check if `dev/.dev-token` exists and isn't expired |
+| `node dev/claude/inject-token.js` | Extract token + URL as JSON for MCP injection |
+| `node dev/claude/inject-token.js --fetch-string` | Output raw fetch() string for pasting into dev toolbar |
+| `dev/claude/pr-comments.sh list [pr]` | List unresolved PR review comments |
+| `dev/claude/pr-comments.sh reply <pr> <id> <body>` | Reply to a specific review comment |
+| `dev/claude/pr-comments.sh resolve <pr> [--all]` | Resolve review threads (one or all) |
+| `dev/claude/pr-comments.sh reply-resolve <pr> <body>` | Reply to all unresolved comments and resolve them |
+| `dev/claude/start-server.sh` | Start dev server in background, wait for ready |
+| `dev/claude/stop-server.sh` | Stop dev server |
+| `dev/claude/run-tests.sh` | Run Playwright tests from correct cwd |
+| `node dev/claude/api-request.js` | Hit UiPath API using token from `.dev-token` |
+| `node dev/claude/api-request.js /path` | Hit a specific API path on the same host |
 
 ### Human testing workflow
 
@@ -63,7 +79,7 @@ The Playwright config auto-starts and stops the dev server. 11 tests run determi
 2. Open http://localhost:3000 in a browser
 3. Paste a "Copy as fetch()" string into the dev toolbar textarea — it auto-injects on paste
 4. The token appears in the UI with correct type classification and expiry
-5. Click "Fetch Tenants" to pull real tenant data from UiPath using the injected token
+5. Click "Fetch Org Info" to pull real organization and tenant data from UiPath using the injected token
 6. Use sample token buttons for quick UI-only testing without a real token
 7. Edit any source file — the page auto-reloads
 
@@ -72,11 +88,12 @@ The Playwright config auto-starts and stops the dev server. 11 tests run determi
 After implementing a feature, verify it works in three steps:
 
 **Step 1: Manual verification with Playwright MCP**
-1. Start the dev server: `cd dev && npm start &`
+1. Start the dev server: `dev/claude/start-server.sh`
 2. `browser_navigate` to `http://localhost:3000`
-3. Interact with your new feature using `browser_click`, `browser_fill`, `browser_evaluate`, `browser_snapshot`
-4. Confirm it works as expected visually via snapshots
-5. Kill the server: `pkill -f 'node server.js'`
+3. To inject a real token: run `node dev/claude/inject-token.js --fetch-string`, then paste the output into the dev toolbar textarea via `browser_fill_form`
+4. Interact with your new feature using `browser_click`, `browser_fill`, `browser_evaluate`, `browser_snapshot`
+5. Confirm it works as expected visually via snapshots
+6. Stop the server: `dev/claude/stop-server.sh`
 
 **Step 2: Write a Playwright test**
 1. Add a new `test()` to `dev/tests/dev-server.spec.js` (or a new `.spec.js` file in `dev/tests/`)
@@ -86,9 +103,9 @@ After implementing a feature, verify it works in three steps:
 
 **Step 3: Run the full test suite**
 ```
-cd dev && npx playwright test
+dev/claude/run-tests.sh
 ```
-All existing tests must still pass. The new test must pass. If the integration test is skipped due to an expired token, that's fine — it's not a failure.
+All existing tests must still pass. The new test must pass. If integration tests are skipped due to an expired token, that's fine — not a failure.
 
 ### Dev server architecture
 

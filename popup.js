@@ -1,3 +1,9 @@
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 let currentTabId = null;
 let lastTokenCount = 0;
 let settings = {
@@ -149,6 +155,7 @@ document.getElementById('clearBtn').addEventListener('click', () => {
       tabId: currentTabId
     }, () => {
       loadTokens();
+      displayOrganization(null);
     });
   }
 });
@@ -281,31 +288,63 @@ document.getElementById('settingsModal').addEventListener('click', (e) => {
 });
 
 // Fetch tenants button handler
-document.getElementById('fetchTenantsBtn').addEventListener('click', () => {
-  const btn = document.getElementById('fetchTenantsBtn');
+document.getElementById('fetchOrgInfoBtn').addEventListener('click', () => {
+  const btn = document.getElementById('fetchOrgInfoBtn');
   btn.textContent = 'Fetching...';
   btn.disabled = true;
 
   chrome.runtime.sendMessage({
-    action: 'fetchTenants',
+    action: 'fetchOrgInfo',
     tabId: currentTabId
   }, (response) => {
-    btn.textContent = 'Fetch Tenants';
+    btn.textContent = 'Fetch Org Info';
     btn.disabled = false;
 
     if (response && response.success && response.tenants) {
-      if (response.tenants.error) {
-        showNotification('Error: ' + response.tenants.error, 'info');
-        return;
-      }
+      displayOrganization(response.organization);
       displayTenants(response.tenants);
-      showNotification(`Found ${response.tenants.length} tenant(s)`, 'success');
+      const orgMsg = response.organization ? ` for ${response.organization.name}` : '';
+      showNotification(`Found ${response.tenants.length} tenant(s)${orgMsg}`, 'success');
     } else {
-      const errorMsg = response?.error || 'Could not fetch tenants. Make sure you are on a UiPath portal page.';
+      const errorMsg = response?.error || 'Could not fetch org info. Make sure you are on a UiPath portal page.';
       showNotification(errorMsg, 'info');
     }
   });
 });
+
+// Display organization info
+function displayOrganization(org) {
+  const orgInfo = document.getElementById('orgInfo');
+  if (!org) {
+    orgInfo.innerHTML = '';
+    return;
+  }
+
+  orgInfo.innerHTML = `
+    <div class="org-item">
+      <div class="org-label">Organization</div>
+      <div class="org-name">${escapeHtml(org.name)}</div>
+      <div class="org-id-row">
+        <span class="org-id">${escapeHtml(org.id)}</span>
+        <button class="copy-org-btn" data-org-id="${escapeHtml(org.id)}">Copy ID</button>
+      </div>
+    </div>
+  `;
+
+  orgInfo.querySelector('.copy-org-btn').addEventListener('click', (e) => {
+    const orgId = e.target.dataset.orgId;
+    navigator.clipboard.writeText(orgId).then(() => {
+      e.target.textContent = 'Copied!';
+      e.target.classList.add('copied');
+      setTimeout(() => {
+        e.target.textContent = 'Copy ID';
+        e.target.classList.remove('copied');
+      }, 2000);
+    }).catch(() => {
+      showNotification('Failed to copy to clipboard', 'info');
+    });
+  });
+}
 
 // Display tenants
 function displayTenants(tenants) {
@@ -320,12 +359,14 @@ function displayTenants(tenants) {
 
   noTenants.classList.remove('visible');
 
-  tenantsList.innerHTML = tenants.map((tenant, index) => `
+  tenantsList.innerHTML = `
+    <div class="tenants-label">Tenants</div>
+  ` + tenants.map((tenant, index) => `
     <div class="tenant-item">
-      <div class="tenant-name">${tenant.tenantName}</div>
+      <div class="tenant-name">${escapeHtml(tenant.tenantName)}</div>
       <div class="tenant-id-row">
-        <span class="tenant-id">${tenant.tenantId}</span>
-        <button class="copy-tenant-btn" data-tenant-id="${tenant.tenantId}">Copy ID</button>
+        <span class="tenant-id">${escapeHtml(tenant.tenantId)}</span>
+        <button class="copy-tenant-btn" data-tenant-id="${escapeHtml(tenant.tenantId)}">Copy ID</button>
       </div>
     </div>
   `).join('');
@@ -341,6 +382,8 @@ function displayTenants(tenants) {
           e.target.textContent = 'Copy ID';
           e.target.classList.remove('copied');
         }, 2000);
+      }).catch(() => {
+        showNotification('Failed to copy to clipboard', 'info');
       });
     });
   });
