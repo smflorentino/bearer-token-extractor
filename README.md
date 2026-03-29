@@ -256,7 +256,7 @@ cd dev && npm start
 cd dev && npx playwright test
 ```
 
-11 tests run with sample tokens (no real credentials needed). To also run the integration test that hits the real UiPath API, save a "Copy as fetch()" string to `dev/.dev-token` — this file is gitignored.
+Most tests run with sample tokens (no real credentials needed). To also run integration tests that hit the real UiPath API, save a "Copy as fetch()" string to `dev/.dev-token` — this file is gitignored.
 
 ## Files
 

@@ -1,9 +1,10 @@
-const { test, expect } = require('@playwright/test');
-const fs = require('fs');
-const path = require('path');
+import { test, expect, type Page } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+import { extractToken, extractUrl, decodeJwt } from '../claude/parse-token';
 
 // Helper: inject a sample token and wait for it to appear in the token list
-async function injectSampleToken(page, type) {
+async function injectSampleToken(page: Page, type: string) {
   await page.getByRole('button', { name: type }).click();
   await expect(page.locator(`#tokensList .token-type.${type}`)).toBeVisible();
 }
@@ -121,40 +122,29 @@ test.describe('tenant proxy API', () => {
   });
 });
 
-test.describe('real token integration', () => {
+test.describe('integration tests', () => {
   const devTokenPath = path.join(__dirname, '..', '.dev-token');
 
-  function getTokenFromFile() {
-    if (!fs.existsSync(devTokenPath)) return null;
-    const content = fs.readFileSync(devTokenPath, 'utf8').trim();
-    const bearerMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
-    if (bearerMatch) return bearerMatch[1];
-    if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(content)) return content;
-    return null;
-  }
-
-  function getTokenStatus() {
+  function getTokenStatus(): string {
     if (!fs.existsSync(devTokenPath)) return 'missing';
-    const token = getTokenFromFile();
+    const content = fs.readFileSync(devTokenPath, 'utf8');
+    const token = extractToken(content);
     if (!token) return 'invalid';
-    const parts = token.split('.');
-    if (parts.length !== 3) return 'invalid';
-    try {
-      const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
-      if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return 'expired';
-      return 'valid';
-    } catch { return 'invalid'; }
+    const payload = decodeJwt(token);
+    if (!payload) return 'invalid';
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return 'expired';
+    return 'valid';
   }
 
   const status = getTokenStatus();
-  test.skip(status !== 'valid', `Skipped: dev/.dev-token is ${status}`);
+  test.skip(status !== 'valid');
 
-  function getFetchString() {
+  function getFetchString(): string {
     const content = fs.readFileSync(devTokenPath, 'utf8').trim();
-    // If it's already a fetch() string, use as-is
-    if (content.match(/fetch\s*\(/)) return content;
+    if (extractUrl(content)) return content;
     // Raw JWT — synthesize a fetch string for the dev toolbar
-    return `fetch("https://alpha.uipath.com", {\n  "headers": {\n    "authorization": "Bearer ${content}"\n  }\n})`;
+    const token = extractToken(content);
+    return `fetch("https://alpha.uipath.com", {\n  "headers": {\n    "authorization": "Bearer ${token}"\n  }\n})`;
   }
 
   test('inject real token and fetch org and tenants', async ({ page }) => {
@@ -175,7 +165,7 @@ test.describe('real token integration', () => {
     await expect(page.locator('.tenant-item').first()).toBeVisible({ timeout: 10000 });
 
     const tenantName = await page.locator('.tenant-item').first().locator('.tenant-name').textContent();
-    expect(tenantName.length).toBeGreaterThan(0);
+    expect(tenantName!.length).toBeGreaterThan(0);
   });
 
   test('inject real token and fetch org info', async ({ page }) => {
@@ -197,7 +187,7 @@ test.describe('real token integration', () => {
 
     // Verify org name is displayed
     const orgName = await page.locator('.org-name').textContent();
-    expect(orgName.length).toBeGreaterThan(0);
+    expect(orgName!.length).toBeGreaterThan(0);
 
     // Verify org ID is displayed
     const orgId = await page.locator('.org-id').textContent();

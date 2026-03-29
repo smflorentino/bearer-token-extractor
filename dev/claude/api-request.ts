@@ -1,6 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 // Makes an HTTPS request to a UiPath API using the token from dev/.dev-token.
-// Usage: node dev/claude/api-request.js [path]
+// Usage: npx tsx dev/claude/api-request.ts [path]
 //
 // If no path is given, uses the URL from dev/.dev-token.
 // If a path is given, constructs the URL from the token's host + org slug.
@@ -8,12 +8,13 @@
 // Output: raw JSON response body
 //
 // Examples:
-//   node dev/claude/api-request.js
-//   node dev/claude/api-request.js /evalsperf/portal_/api/filtering/leftnav/tenantsAndOrganizationInfo
+//   npx tsx dev/claude/api-request.ts
+//   npx tsx dev/claude/api-request.ts /evalsperf/portal_/api/filtering/leftnav/tenantsAndOrganizationInfo
 
-const fs = require('fs');
-const https = require('https');
-const path = require('path');
+import fs from 'fs';
+import https from 'https';
+import path from 'path';
+import { extractToken, extractUrl } from './parse-token';
 
 const tokenFile = path.join(__dirname, '..', '.dev-token');
 
@@ -24,31 +25,28 @@ if (!fs.existsSync(tokenFile)) {
 
 const content = fs.readFileSync(tokenFile, 'utf8').trim();
 
-// Try fetch() format first, then raw JWT
-const bearerMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
-const rawJwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(content) ? content : null;
-const token = bearerMatch ? bearerMatch[1] : rawJwt;
+const token = extractToken(content);
 
 if (!token) {
   console.error('ERROR: No Bearer token found in dev/.dev-token.');
   process.exit(1);
 }
 
-const urlMatch = content.match(/fetch\s*\(\s*["']([^"']+)["']/);
+const url = extractUrl(content);
 
-let hostname, requestPath;
+let hostname: string;
+let requestPath: string;
 const customPath = process.argv[2];
 
 if (customPath) {
-  // Extract hostname from the token file's URL, or default to alpha.uipath.com
-  hostname = urlMatch ? new URL(urlMatch[1]).hostname : 'alpha.uipath.com';
+  hostname = url ? new URL(url).hostname : 'alpha.uipath.com';
   requestPath = customPath;
-} else if (urlMatch) {
-  const parsed = new URL(urlMatch[1]);
+} else if (url) {
+  const parsed = new URL(url);
   hostname = parsed.hostname;
   requestPath = parsed.pathname + parsed.search;
 } else {
-  console.error('ERROR: No URL found and no path argument given. Use: node api-request.js /path');
+  console.error('ERROR: No URL found and no path argument given. Use: npx tsx api-request.ts /path');
   process.exit(1);
 }
 
@@ -62,7 +60,7 @@ const req = https.request({
   }
 }, (res) => {
   let body = '';
-  res.on('data', c => body += c);
+  res.on('data', (c: string) => body += c);
   res.on('end', () => {
     try {
       console.log(JSON.stringify(JSON.parse(body), null, 2));

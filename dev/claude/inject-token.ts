@@ -1,6 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 // Extracts token and URL from dev/.dev-token for MCP injection.
-// Usage: node dev/claude/inject-token.js [--fetch-string]
+// Usage: npx tsx dev/claude/inject-token.ts [--fetch-string]
 //
 // Default output: JSON with token, url, status, and expiresIn
 // --fetch-string: outputs the raw fetch() string (for pasting into dev toolbar)
@@ -11,8 +11,9 @@
 //   MISSING: — dev/.dev-token not found
 //   INVALID: — file doesn't contain a valid Bearer JWT
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { extractToken, extractUrl, decodeJwt } from './parse-token';
 
 const tokenFile = path.join(__dirname, '..', '.dev-token');
 const fetchStringMode = process.argv.includes('--fetch-string');
@@ -20,51 +21,40 @@ const fetchStringMode = process.argv.includes('--fetch-string');
 if (!fs.existsSync(tokenFile)) {
   if (fetchStringMode) { console.log('MISSING: dev/.dev-token not found.'); }
   else { console.log(JSON.stringify({ error: 'MISSING', message: 'dev/.dev-token not found' })); }
-  return;
+  process.exit(0);
 }
 
-const content = fs.readFileSync(tokenFile, 'utf8').trim();
-
-// Try fetch() format first, then raw JWT
-const bearerMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
-const rawJwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(content) ? content : null;
-const token = bearerMatch ? bearerMatch[1] : rawJwt;
+const content = fs.readFileSync(tokenFile, 'utf8');
+const token = extractToken(content);
 
 if (!token) {
   if (fetchStringMode) { console.log('INVALID: No Bearer token found in dev/.dev-token.'); }
   else { console.log(JSON.stringify({ error: 'INVALID', message: 'No Bearer token found' })); }
-  return;
+  process.exit(0);
 }
 
-const urlMatch = content.match(/fetch\s*\(\s*["']([^"']+)["']/);
-const url = urlMatch ? urlMatch[1] : null;
+const url = extractUrl(content);
 
-// Decode JWT to check expiry
-const parts = token.split('.');
 let status = 'valid';
-let expiresIn = null;
+let expiresIn: string | null = null;
 
-if (parts.length === 3) {
-  try {
-    const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
-    if (payload.exp) {
-      const remaining = payload.exp - Math.floor(Date.now() / 1000);
-      if (remaining <= 0) {
-        status = 'expired';
-        expiresIn = `${Math.abs(Math.floor(remaining / 60))}m ago`;
-      } else {
-        expiresIn = `${Math.floor(remaining / 60)}m`;
-      }
-    }
-  } catch {}
+const payload = decodeJwt(token);
+if (payload?.exp) {
+  const remaining = payload.exp - Math.floor(Date.now() / 1000);
+  if (remaining <= 0) {
+    status = 'expired';
+    expiresIn = `${Math.abs(Math.floor(remaining / 60))}m ago`;
+  } else {
+    expiresIn = `${Math.floor(remaining / 60)}m`;
+  }
 }
 
 if (fetchStringMode) {
   if (status === 'expired') {
     console.log(`EXPIRED: Token expired ${expiresIn}. Refresh dev/.dev-token.`);
-  } else if (bearerMatch) {
+  } else if (url) {
     // Output the raw fetch string for direct pasting into MCP browser_fill
-    console.log(content);
+    console.log(content.trim());
   } else {
     // Raw JWT — synthesize a fetch string for the dev toolbar
     console.log(`fetch("https://alpha.uipath.com", {\n  "headers": {\n    "authorization": "Bearer ${token}"\n  }\n})`);

@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 // Fetches a bearer token by logging into alpha.uipath.com via Playwright.
-// Writes the raw JWT to dev/.dev-token if the cached token is missing or expired.
+// Writes a fetch() format string to dev/.dev-token if the cached token is missing or expired.
 //
 // Requires env vars:
 //   BEARER_TOKEN_EXTRACTOR_REPO_USERNAME
@@ -12,37 +12,16 @@ import fs from 'fs';
 import path from 'path';
 import { chromium } from 'playwright';
 
+import { extractToken, decodeJwt } from './parse-token';
+
 const TOKEN_FILE = path.join(__dirname, '..', '.dev-token');
 const MIN_REMAINING_SECONDS = 5 * 60; // skip login if token has >5 min left
 const LOGIN_TIMEOUT = 60_000;
 
-interface JwtPayload {
-  exp?: number;
-  iss?: string;
-  [key: string]: unknown;
-}
-
-function decodeJwt(token: string): JwtPayload | null {
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-  try {
-    return JSON.parse(
-      Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()
-    );
-  } catch {
-    return null;
-  }
-}
-
 function getCachedToken(): string | null {
   if (!fs.existsSync(TOKEN_FILE)) return null;
-  const content = fs.readFileSync(TOKEN_FILE, 'utf8').trim();
-  // Try fetch() format first
-  const bearerMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
-  if (bearerMatch) return bearerMatch[1];
-  // Try raw JWT
-  if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(content)) return content;
-  return null;
+  const content = fs.readFileSync(TOKEN_FILE, 'utf8');
+  return extractToken(content) as string | null;
 }
 
 function isTokenFresh(token: string): boolean {
@@ -79,6 +58,11 @@ async function main() {
   let capturedToken: string | null = null;
   let capturedUrl: string | null = null;
 
+  let resolveTokenCaptured: () => void;
+  const tokenCaptured = new Promise<void>((resolve) => {
+    resolveTokenCaptured = resolve;
+  });
+
   // Listen for requests with Authorization: Bearer headers on alpha.uipath.com.
   // We need a request whose URL contains the org slug (e.g. /bearertokenextractor/)
   // so the dev server's tenant proxy can extract the hostname and org.
@@ -101,6 +85,7 @@ async function main() {
     if (!payload?.exp) return; // skip tokens without expiry
     capturedToken = token;
     capturedUrl = url;
+    resolveTokenCaptured();
   });
 
   try {
@@ -122,7 +107,7 @@ async function main() {
 
     // Wait for bearer token to be captured from subsequent API requests
     if (!capturedToken) {
-      await page.waitForTimeout(10_000); // give API calls time to fire
+      await Promise.race([tokenCaptured, page.waitForTimeout(30_000)]);
     }
 
     if (!capturedToken) {
