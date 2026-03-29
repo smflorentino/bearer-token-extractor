@@ -23,33 +23,32 @@ if (!fs.existsSync(tokenFile)) {
 }
 
 const content = fs.readFileSync(tokenFile, 'utf8').trim();
-const tokenMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
-if (!tokenMatch) {
+
+// Try fetch() format first, then raw JWT
+const bearerMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
+const rawJwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(content) ? content : null;
+const token = bearerMatch ? bearerMatch[1] : rawJwt;
+
+if (!token) {
   console.error('ERROR: No Bearer token found in dev/.dev-token.');
   process.exit(1);
 }
 
-const token = tokenMatch[1];
 const urlMatch = content.match(/fetch\s*\(\s*["']([^"']+)["']/);
 
 let hostname, requestPath;
 const customPath = process.argv[2];
 
 if (customPath) {
-  // Extract hostname from the token file's URL
-  if (!urlMatch) {
-    console.error('ERROR: No URL found in dev/.dev-token to determine hostname.');
-    process.exit(1);
-  }
-  const parsed = new URL(urlMatch[1]);
-  hostname = parsed.hostname;
+  // Extract hostname from the token file's URL, or default to alpha.uipath.com
+  hostname = urlMatch ? new URL(urlMatch[1]).hostname : 'alpha.uipath.com';
   requestPath = customPath;
 } else if (urlMatch) {
   const parsed = new URL(urlMatch[1]);
   hostname = parsed.hostname;
   requestPath = parsed.pathname + parsed.search;
 } else {
-  console.error('ERROR: No URL found and no path argument given.');
+  console.error('ERROR: No URL found and no path argument given. Use: node api-request.js /path');
   process.exit(1);
 }
 

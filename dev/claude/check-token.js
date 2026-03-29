@@ -34,14 +34,16 @@ if (!fs.existsSync(tokenFile)) {
   return;
 }
 
-const content = fs.readFileSync(tokenFile, 'utf8');
-const match = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
-if (!match) {
-  console.log('INVALID: dev/.dev-token does not contain an Authorization: Bearer header.');
+const content = fs.readFileSync(tokenFile, 'utf8').trim();
+
+// Try fetch() format first, then raw JWT
+const bearerMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
+const token = bearerMatch ? bearerMatch[1] : /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(content) ? content : null;
+
+if (!token) {
+  console.log('INVALID: dev/.dev-token does not contain a Bearer token or raw JWT.');
   return;
 }
-
-const token = match[1];
 const parts = token.split('.');
 if (parts.length !== 3) {
   console.log('INVALID: dev/.dev-token contains a bearer token but it is not a valid JWT.');

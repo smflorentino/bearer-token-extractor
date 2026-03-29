@@ -25,15 +25,18 @@ if (!fs.existsSync(tokenFile)) {
 
 const content = fs.readFileSync(tokenFile, 'utf8').trim();
 
-const tokenMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
-if (!tokenMatch) {
+// Try fetch() format first, then raw JWT
+const bearerMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
+const rawJwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(content) ? content : null;
+const token = bearerMatch ? bearerMatch[1] : rawJwt;
+
+if (!token) {
   if (fetchStringMode) { console.log('INVALID: No Bearer token found in dev/.dev-token.'); }
   else { console.log(JSON.stringify({ error: 'INVALID', message: 'No Bearer token found' })); }
   return;
 }
 
 const urlMatch = content.match(/fetch\s*\(\s*["']([^"']+)["']/);
-const token = tokenMatch[1];
 const url = urlMatch ? urlMatch[1] : null;
 
 // Decode JWT to check expiry
@@ -59,9 +62,12 @@ if (parts.length === 3) {
 if (fetchStringMode) {
   if (status === 'expired') {
     console.log(`EXPIRED: Token expired ${expiresIn}. Refresh dev/.dev-token.`);
-  } else {
+  } else if (bearerMatch) {
     // Output the raw fetch string for direct pasting into MCP browser_fill
     console.log(content);
+  } else {
+    // Raw JWT — synthesize a fetch string for the dev toolbar
+    console.log(`fetch("https://alpha.uipath.com", {\n  "headers": {\n    "authorization": "Bearer ${token}"\n  }\n})`);
   }
 } else {
   console.log(JSON.stringify({ token, url, status, expiresIn }));

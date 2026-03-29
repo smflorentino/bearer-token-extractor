@@ -233,6 +233,8 @@ A detailed security analysis is available in [SECURITY.md](SECURITY.md), includi
 Iterate on the extension UI without loading it into Chrome. Serves the popup as a regular web page with Chrome APIs shimmed and live-reloads on file changes.
 
 ### One-time setup
+1. Set `BEARER_TOKEN_EXTRACTOR_REPO_USERNAME` and `BEARER_TOKEN_EXTRACTOR_REPO_PASSWORD` environment variables. The credentails are in 1Password (Vault=`PO`, secret name=`uipath - bearer-token-extractor`).
+2. Install dependencies:
 ```bash
 cd dev && npm install
 npx playwright install chromium

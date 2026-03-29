@@ -124,12 +124,20 @@ test.describe('tenant proxy API', () => {
 test.describe('real token integration', () => {
   const devTokenPath = path.join(__dirname, '..', '.dev-token');
 
+  function getTokenFromFile() {
+    if (!fs.existsSync(devTokenPath)) return null;
+    const content = fs.readFileSync(devTokenPath, 'utf8').trim();
+    const bearerMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
+    if (bearerMatch) return bearerMatch[1];
+    if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(content)) return content;
+    return null;
+  }
+
   function getTokenStatus() {
     if (!fs.existsSync(devTokenPath)) return 'missing';
-    const content = fs.readFileSync(devTokenPath, 'utf8');
-    const match = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
-    if (!match) return 'invalid';
-    const parts = match[1].split('.');
+    const token = getTokenFromFile();
+    if (!token) return 'invalid';
+    const parts = token.split('.');
     if (parts.length !== 3) return 'invalid';
     try {
       const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString());
@@ -141,8 +149,16 @@ test.describe('real token integration', () => {
   const status = getTokenStatus();
   test.skip(status !== 'valid', `Skipped: dev/.dev-token is ${status}`);
 
+  function getFetchString() {
+    const content = fs.readFileSync(devTokenPath, 'utf8').trim();
+    // If it's already a fetch() string, use as-is
+    if (content.match(/fetch\s*\(/)) return content;
+    // Raw JWT — synthesize a fetch string for the dev toolbar
+    return `fetch("https://alpha.uipath.com", {\n  "headers": {\n    "authorization": "Bearer ${content}"\n  }\n})`;
+  }
+
   test('inject real token and fetch org and tenants', async ({ page }) => {
-    const fetchString = fs.readFileSync(devTokenPath, 'utf8');
+    const fetchString = getFetchString();
 
     await page.goto('/');
 
@@ -163,7 +179,7 @@ test.describe('real token integration', () => {
   });
 
   test('inject real token and fetch org info', async ({ page }) => {
-    const fetchString = fs.readFileSync(devTokenPath, 'utf8');
+    const fetchString = getFetchString();
 
     await page.goto('/');
 

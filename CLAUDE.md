@@ -37,9 +37,13 @@ Opens at http://localhost:3000. Serves the popup as a regular web page with Chro
 
 Path: **`dev/.dev-token`** (inside the `dev/` folder, alongside `server.js`). This file is gitignored and should never be committed.
 
-It contains a raw "Copy as fetch()" output from browser DevTools — the full `fetch("https://...", { headers: { "authorization": "Bearer eyJ..." } })` string.
+It accepts two formats:
+- A raw "Copy as fetch()" output from browser DevTools — `fetch("https://...", { headers: { "authorization": "Bearer eyJ..." } })`
+- A raw JWT string — just `eyJhbGci...` (three dot-separated base64url segments)
 
-**To provide/refresh a token:**
+**Automatic token refresh:** If env vars `BEARER_TOKEN_EXTRACTOR_REPO_USERNAME` and `BEARER_TOKEN_EXTRACTOR_REPO_PASSWORD` are set, the Playwright `globalSetup` automatically fetches a fresh token when `.dev-token` is missing or expired. No manual intervention needed.
+
+**To manually provide/refresh a token:**
 1. Go to a UiPath portal page, open DevTools → Network tab
 2. Right-click any request with an `Authorization: Bearer` header → "Copy as fetch()"
 3. Paste the entire output into `dev/.dev-token` (overwrite any previous contents)
@@ -50,9 +54,9 @@ It contains a raw "Copy as fetch()" output from browser DevTools — the full `f
 dev/claude/run-tests.sh
 ```
 
-The Playwright config auto-starts and stops the dev server. 13 tests run deterministically using sample tokens (no real credentials needed). 2 integration tests use `dev/.dev-token` — they are automatically skipped if the file is missing, the token is expired, or the JWT is invalid.
+The Playwright config auto-starts and stops the dev server. The `globalSetup` hook runs `fetch-token.ts` to auto-refresh `dev/.dev-token` if env vars are set. 13 tests run deterministically using sample tokens (no real credentials needed). 2 integration tests use `dev/.dev-token` — they are automatically skipped if the file is missing, the token is expired, or the JWT is invalid.
 
-**After making changes, always run `dev/claude/run-tests.sh` to verify.** If integration tests are skipped and you need them to run, ask the user to refresh `dev/.dev-token`.
+**After making changes, always run `dev/claude/run-tests.sh` to verify.** If integration tests are skipped and you need them to run, either set the env vars for auto-fetch or ask the user to refresh `dev/.dev-token`.
 
 ### Dev scripts (all allowlisted in `settings.local.json`)
 
@@ -72,6 +76,7 @@ All scripts live in `dev/claude/` and are pre-authorized — no human approval n
 | `dev/claude/run-tests.sh` | Run Playwright tests from correct cwd |
 | `node dev/claude/api-request.js` | Hit UiPath API using token from `.dev-token` |
 | `node dev/claude/api-request.js /path` | Hit a specific API path on the same host |
+| `npx tsx dev/claude/fetch-token.ts` | Auto-fetch bearer token via Playwright login (requires env vars) |
 
 ### Human testing workflow
 

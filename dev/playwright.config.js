@@ -1,6 +1,7 @@
 const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
+  globalSetup: './claude/global-setup.ts',
   testDir: './tests',
   timeout: 30000,
   fullyParallel: true,
