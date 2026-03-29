@@ -18,7 +18,7 @@ set -euo pipefail
 
 usage() {
   sed -n '2,14p' "$0" | sed 's/^# \?//'
-  exit 1
+  exit "${1:-1}"
 }
 
 # --- Detect repo from git remote ---
@@ -206,6 +206,7 @@ cmd="${1:-}"
 shift || true
 
 case "$cmd" in
+  -h|--help)      usage 0 ;;
   list)           cmd_list "${1:-}" ;;
   reply)          cmd_reply "${1:-}" "${2:-}" "${3:-}" ;;
   resolve)        cmd_resolve "${1:-$(detect_pr)}" "${2:---all}" ;;
