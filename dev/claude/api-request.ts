@@ -1,6 +1,6 @@
-#!/usr/bin/env node
+#!/usr/bin/env npx tsx
 // Makes an HTTPS request to a UiPath API using the token from dev/.dev-token.
-// Usage: node dev/claude/api-request.js [path]
+// Usage: npx tsx dev/claude/api-request.ts [path]
 //
 // If no path is given, uses the URL from dev/.dev-token.
 // If a path is given, constructs the URL from the token's host + org slug.
@@ -8,12 +8,13 @@
 // Output: raw JSON response body
 //
 // Examples:
-//   node dev/claude/api-request.js
-//   node dev/claude/api-request.js /evalsperf/portal_/api/filtering/leftnav/tenantsAndOrganizationInfo
+//   npx tsx dev/claude/api-request.ts
+//   npx tsx dev/claude/api-request.ts /evalsperf/portal_/api/filtering/leftnav/tenantsAndOrganizationInfo
 
-const fs = require('fs');
-const https = require('https');
-const path = require('path');
+import fs from 'fs';
+import https from 'https';
+import path from 'path';
+import { extractToken, extractUrl, UIPATH_HOST } from './parse-token';
 
 const tokenFile = path.join(__dirname, '..', '.dev-token');
 
@@ -23,33 +24,29 @@ if (!fs.existsSync(tokenFile)) {
 }
 
 const content = fs.readFileSync(tokenFile, 'utf8').trim();
-const tokenMatch = content.match(/["']?[Aa]uthorization["']?\s*:\s*["']Bearer\s+([^"']+)["']/);
-if (!tokenMatch) {
+
+const token = extractToken(content);
+
+if (!token) {
   console.error('ERROR: No Bearer token found in dev/.dev-token.');
   process.exit(1);
 }
 
-const token = tokenMatch[1];
-const urlMatch = content.match(/fetch\s*\(\s*["']([^"']+)["']/);
+const url = extractUrl(content);
 
-let hostname, requestPath;
+let hostname: string;
+let requestPath: string;
 const customPath = process.argv[2];
 
 if (customPath) {
-  // Extract hostname from the token file's URL
-  if (!urlMatch) {
-    console.error('ERROR: No URL found in dev/.dev-token to determine hostname.');
-    process.exit(1);
-  }
-  const parsed = new URL(urlMatch[1]);
-  hostname = parsed.hostname;
+  hostname = url ? new URL(url).hostname : UIPATH_HOST;
   requestPath = customPath;
-} else if (urlMatch) {
-  const parsed = new URL(urlMatch[1]);
+} else if (url) {
+  const parsed = new URL(url);
   hostname = parsed.hostname;
   requestPath = parsed.pathname + parsed.search;
 } else {
-  console.error('ERROR: No URL found and no path argument given.');
+  console.error('ERROR: No URL found and no path argument given. Use: npx tsx api-request.ts /path');
   process.exit(1);
 }
 
@@ -63,7 +60,7 @@ const req = https.request({
   }
 }, (res) => {
   let body = '';
-  res.on('data', c => body += c);
+  res.on('data', (c: string) => body += c);
   res.on('end', () => {
     try {
       console.log(JSON.stringify(JSON.parse(body), null, 2));

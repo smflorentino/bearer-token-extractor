@@ -20,8 +20,8 @@ function decodeJWT(token) {
 
 // Determine token type based on URL and payload
 function getTokenType(url, payload) {
-  // Check if URL contains id-alpha.uipath.com
-  if (url.includes('id-alpha.uipath.com') || url.includes('id.uipath.com') || url.includes('id-staging.uipath.com')) {
+  // Check if URL is from a UiPath identity provider (id-*.uipath.com or account.uipath.com)
+  if (url.includes('account.uipath.com') || /id(-\w+)?\.uipath\.com/.test(url)) {
     return 'IdToken';
   }
 

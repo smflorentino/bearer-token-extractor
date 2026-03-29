@@ -1,6 +1,7 @@
-const { defineConfig } = require('@playwright/test');
+import { defineConfig } from '@playwright/test';
 
-module.exports = defineConfig({
+export default defineConfig({
+  globalSetup: './claude/global-setup.ts',
   testDir: './tests',
   timeout: 30000,
   fullyParallel: true,

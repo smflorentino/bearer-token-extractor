@@ -65,7 +65,7 @@ A Chrome extension primarily designed for **UiPath token extraction** - captures
 
 ### Token Types
 The extension automatically detects and categorizes tokens:
-- **IdToken** (Blue): Tokens from UiPath identity services (`id-alpha.uipath.com`, `id.uipath.com`, `id-staging.uipath.com`)
+- **IdToken** (Blue): Tokens from UiPath identity services (`id-*.uipath.com`, `account.uipath.com`)
 - **PortalPkceToken** (Purple): Tokens with `client_id: 73ba6224-d591-4a4f-b3ab-508e646f2932`
 - **UserAccessToken** (Orange): Tokens with `client_id: 1119a927-10ab-4543-bd1a-ad6bfbbc27f4`
 - **Unknown** (Gray): Other bearer tokens that don't match known patterns
@@ -233,6 +233,8 @@ A detailed security analysis is available in [SECURITY.md](SECURITY.md), includi
 Iterate on the extension UI without loading it into Chrome. Serves the popup as a regular web page with Chrome APIs shimmed and live-reloads on file changes.
 
 ### One-time setup
+1. Set `BEARER_TOKEN_EXTRACTOR_REPO_USERNAME` and `BEARER_TOKEN_EXTRACTOR_REPO_PASSWORD` environment variables. The credentails are in 1Password (Vault=`PO`, secret name=`uipath - bearer-token-extractor`).
+2. Install dependencies:
 ```bash
 cd dev && npm install
 npx playwright install chromium
@@ -254,7 +256,7 @@ cd dev && npm start
 cd dev && npx playwright test
 ```
 
-11 tests run with sample tokens (no real credentials needed). To also run the integration test that hits the real UiPath API, save a "Copy as fetch()" string to `dev/.dev-token` — this file is gitignored.
+Most tests run with sample tokens (no real credentials needed). To also run integration tests that hit the real UiPath API, save a "Copy as fetch()" string to `dev/.dev-token` — this file is gitignored.
 
 ## Files
 
